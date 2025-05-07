@@ -3,7 +3,7 @@ const mongoose = require('mongoose'); // 👈 1. Importa mongoose
 const app = express();
 const assetRoutes = require('./routes/assets');
 
-// 👇 2. Conexión a MongoDB (¡Añade esto!)
+// 👇 2. Conexión a MongoDB 
 mongoose.connect('mongodb://127.0.0.1:27017/gestion-activos', {
   useNewUrlParser: true,
   useUnifiedTopology: true,

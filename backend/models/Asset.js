@@ -9,7 +9,7 @@ const AssetSchema = new mongoose.Schema({
   },
   type: { 
     type: String, 
-    enum: ['Laptop', 'Desktop', 'Monitor'], // Solo estos valores
+    enum: ['Laptop', 'Desktop', 'Monitor'], // Solo estos valores, se pueden agregar más de ser necesario
     required: true 
   },
   model: String, // Ej: "Dell XPS 15"

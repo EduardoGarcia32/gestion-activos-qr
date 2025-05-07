@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: gestion-activos-backend
+    runtime: node
+    buildCommand: npm install
+    startCommand: node app.js
+    envVars:
+      - key: MONGODB_URI
+        value: mongodb+srv://usuario:contraseña@cluster.mongodb.net/gestion-activos?retryWrites=true&w=majority
+      - key: JWT_SECRET
+        generateValue: true

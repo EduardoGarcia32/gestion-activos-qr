@@ -2,10 +2,17 @@ services:
   - type: web
     name: gestion-activos-backend
     runtime: node
-    buildCommand: npm install
-    startCommand: node app.js
+    buildCommand: cd backend && npm install && npm run build
+    startCommand: cd backend && npm start
+    env: node
     envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
       - key: MONGODB_URI
         value: mongodb+srv://usuario:contraseña@cluster.mongodb.net/gestion-activos?retryWrites=true&w=majority
       - key: JWT_SECRET
         generateValue: true
+      - key: JWT_EXPIRE
+        value: 24h

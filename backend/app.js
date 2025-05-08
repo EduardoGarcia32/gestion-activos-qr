@@ -4,7 +4,7 @@ const app = express();
 const assetRoutes = require('./routes/assets');
 
 // 👇 2. Conexión a MongoDB 
-mongoose.connect('mongodb://127.0.0.1:27017/gestion-activos', {
+mongoose.connect(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/gestion-activos', {
   useNewUrlParser: true,
   useUnifiedTopology: true,
   serverSelectionTimeoutMS: 5000 // Timeout de 5 segundos

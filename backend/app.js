@@ -1,76 +1,96 @@
-require('dotenv').config(); // 👈 Cargar variables de entorno al inicio
+require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
-const cors = require('cors'); // 👈 Importante para el frontend
-const morgan = require('morgan'); // 👈 Para logging de requests
+const cors = require('cors');
+const morgan = require('morgan');
 const path = require('path');
+const { protect } = require('./middlewares/auth');
 
 // Importar rutas
 const assetRoutes = require('./routes/assets');
-const authRoutes = require('./routes/auth'); // 👈 Nueva ruta de autenticación
-const dashboardRoutes = require('./routes/dashboard'); // 👈 Ruta para el dashboard
+const authRoutes = require('./routes/auth');
+const dashboardRoutes = require('./routes/dashboard');
 
 const app = express();
 
-// 👇 Configuración mejorada de conexión a MongoDB
+// 1. Conexión mejorada a MongoDB
 const connectDB = async () => {
   try {
-    await mongoose.connect(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/gestion-activos', {
+    await mongoose.connect(process.env.MONGODB_URI, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
       serverSelectionTimeoutMS: 5000,
-      family: 4 // 👈 Fuerza IPv4 para evitar problemas en Windows
+      family: 4
     });
-    console.log('✅ Conectado a MongoDB');
+    console.log('✅ MongoDB conectado');
   } catch (err) {
-    console.error('❌ Error de conexión a MongoDB:', err.message);
-    process.exit(1); // 👈 Salir si no hay conexión a la DB
+    console.error('❌ Error de MongoDB:', err.message);
+    process.exit(1);
   }
 };
 connectDB();
 
-// Middlewares
-app.use(cors()); // 👈 Habilita CORS
-app.use(morgan('dev')); // 👈 Logs de requests en consola
-app.use(express.json());
+// 2. Middlewares esenciales
+app.use(cors({
+  origin: process.env.FRONTEND_URL || '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-auth-token']
+}));
+app.use(morgan('dev'));
+app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
-app.use('/public', express.static(path.join(__dirname, 'public'))); // 👈 Sirve archivos estáticos
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// Rutas
-app.use('/api/assets', assetRoutes);
-app.use('/api/auth', authRoutes); // 👈 Nueva ruta de autenticación
-app.use('/api/dashboard', dashboardRoutes); // 👈 Ruta para el dashboard
+// 3. Sistema de rutas
+app.use('/api/auth', authRoutes);
+app.use('/api/assets', protect, assetRoutes);
+app.use('/api/dashboard', protect, dashboardRoutes);
 
-// Ruta de prueba mejorada
-app.get('/', (req, res) => {
-  res.json({
-    message: 'Backend de gestión de activos',
-    status: 'operativo',
-    environment: process.env.NODE_ENV || 'development',
+// 4. Documentación API (opcional)
+app.get('/api/docs', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'docs.html'));
+});
+
+// 5. Health Check
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    status: 'healthy',
+    dbStatus: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
     timestamp: new Date().toISOString()
   });
 });
 
-// Manejo de errores para rutas no encontradas
+// 6. Manejo de errores
 app.use((req, res, next) => {
-  res.status(404).json({ 
-    success: false,
-    message: 'Ruta no encontrada' 
-  });
+  res.status(404).json({ success: false, message: 'Ruta no encontrada' });
 });
 
-// Manejo centralizado de errores
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({
     success: false,
-    message: 'Error interno del servidor',
-    error: process.env.NODE_ENV === 'development' ? err.message : {}
+    message: 'Error interno',
+    error: process.env.NODE_ENV === 'development' ? err.message : undefined
   });
 });
 
+// 7. Inicio del servidor
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`🚀 Servidor funcionando en http://localhost:${PORT}`);
+const server = app.listen(PORT, () => {
+  console.log(`🚀 Servidor en http://localhost:${PORT}`);
   console.log(`📊 Dashboard disponible en http://localhost:${PORT}/api/dashboard`);
+
 });
+
+// 8. Manejo de cierre
+process.on('SIGTERM', () => {
+  server.close(() => {
+    mongoose.connection.close();
+    console.log('Servidor cerrado');
+    process.exit(0);
+  });
+});
+
+
+
+//  console.log(`📊 Dashboard disponible en http://localhost:${PORT}/api/dashboard`);

@@ -2,14 +2,31 @@ const express = require('express');
 const router = express.Router();
 const Asset = require('../models/Asset');
 const QRCode = require('qrcode');  // Importar librería QR
+const { protect } = require('../middlewares/authMiddleware');
+const { getAllAssets, createAssetWithQR, getAssetByNumber, getAssetQR } = require('../controllers/assetController');
+
+// Rutas protegidas
+router.get('/', protect, getAllAssets);
+router.post('/', protect, createAssetWithQR);
+
+// Nuevas rutas para detalles y QR
+router.get('/:assetNumber', protect, getAssetByNumber);
+router.get('/:assetNumber/qr', protect, getAssetQR);
+
 
 // GET /api/assets (listar todos)
 router.get('/', async (req, res) => {
   try {
     const assets = await Asset.find();
-    res.json(assets);
+    res.json({
+      success: true,
+      data: assets
+    });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({
+      success: false,
+      message: 'Error al obtener los assets'
+    });
   }
 });
 

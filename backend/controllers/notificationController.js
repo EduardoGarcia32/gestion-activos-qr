@@ -1,4 +1,28 @@
-const admin = require('firebase-admin');
+const express = require('express');
+const router = express.Router();
+const { protect } = require('../middlewares/auth');
+const { getDashboardStats } = require('../services/dashboardService');
+
+router.get('/', protect, async (req, res) => {  // Cambiado: requestAnimationFrame → req
+    try {
+        const stats = await getDashboardStats();
+        res.json({
+            success: true,
+            data: stats,  // Corregido: date → data
+            user: req.user // Información del usuario autenticado
+        });
+    } catch(error) {
+        console.error('Error en dashboard', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error al obtener estadísticas'
+        });
+    }
+});
+
+module.exports = router;
+
+/*const admin = require('firebase-admin');
 
 // Configura Firebase Admin SDK.
 admin.initializeApp({
@@ -21,4 +45,4 @@ exports.sendMaintenanceAlert = async (deviceToken, assetNumber) => {
   } catch (err) {
     console.error('Error al enviar notificación:', err);
   }
-};
+};*/

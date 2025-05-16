@@ -24,9 +24,11 @@ app.use(express.urlencoded({ extended: true }));
 
 // 2. Middlewares de seguridad y logs
 app.use(cors({
-  origin: process.env.FRONTEND_URL || '*',
+  origin: 'http://localhost:8081',
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization']//, 'x-auth-token']
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-auth-token'],
+  credentials: true,
+  optionsSuccessStatus: 200
 }));
 app.use(morgan('dev'));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));

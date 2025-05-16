@@ -1,11 +1,16 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'http://[TU_IP_LOCAL]:5000/api', // Reemplaza con tu IP
-  timeout: 10000,
+  baseURL: 'http://localhost:800/api', // Asegúrate que coincida con tu puerto del backend
 });
 
-export const getAsset = (assetNumber) => api.get(`/assets/${assetNumber}`);
-export const createAsset = (assetData) => api.post('/assets', assetData);
-export const addMaintenance = (assetNumber, maintenanceData) => 
-  api.post(`/assets/${assetNumber}/maintenance`, maintenanceData);
+// Interceptor para añadir el token a las peticiones
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+export default api;

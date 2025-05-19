@@ -24,9 +24,9 @@ app.use(express.urlencoded({ extended: true }));
 
 // 2. Middlewares de seguridad y logs
 app.use(cors({
-  origin: 'http://localhost:8081',
+  origin: 'http://localhost:3000', //8080
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-auth-token'],
+  allowedHeaders: ['Content-Type', 'Authorization'], //'x-auth-token'],
   credentials: true,
   optionsSuccessStatus: 200
 }));

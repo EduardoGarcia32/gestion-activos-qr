@@ -28,8 +28,23 @@ function Login() {
       localStorage.setItem('user', JSON.stringify(response.data.user));
       navigate('/dashboard');
     } catch (err) {
-      setError('Credenciales incorrectas o problema con el servidor');
-      console.error('Error en login:', err);
+      let errorMessage = 'Error en el servidor';
+      
+      if (err.code === 'ERR_NETWORK') {
+        errorMessage = 'No se pudo conectar al servidor. Verifica:';
+        errorMessage += '\n1. Que el backend esté corriendo';
+        errorMessage += '\n2. Que la URL sea correcta';
+        errorMessage += '\n3. Que no haya problemas de red';
+      } else if (err.response) {
+        errorMessage = err.response.data.message || 'Credenciales incorrectas';
+      }
+      
+      setError(errorMessage);
+      console.error('Detalles del error:', {
+        code: err.code,
+        message: err.message,
+        config: err.config
+      });
     } finally {
       setLoading(false);
     }
@@ -67,7 +82,7 @@ function Login() {
           />
           
           {error && (
-            <Typography color="error" sx={{ mt: 2 }}>
+            <Typography color="error" sx={{ mt: 2, whiteSpace: 'pre-line' }}>
               {error}
             </Typography>
           )}

@@ -2,6 +2,7 @@ import axios from 'axios';
 
 const api = axios.create({
   baseURL: 'http://localhost:800/api', // Asegúrate que coincida con tu puerto del backend
+    withCredentials: true
 });
 
 // Interceptor para añadir el token a las peticiones

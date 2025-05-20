@@ -7,7 +7,8 @@ import {
   Container, 
   Typography, 
   Box,
-  Paper
+  Paper,
+  Alert
 } from '@mui/material';
 
 function Login() {
@@ -24,8 +25,20 @@ function Login() {
     
     try {
       const response = await api.post('/auth/login', { email, password });
+      
+      // Validar la respuesta del servidor
+      if (!response.data.token || !response.data.user) {
+        throw new Error('Respuesta del servidor incompleta');
+      }
+
+      // Almacenar token y datos de usuario
       localStorage.setItem('token', response.data.token);
       localStorage.setItem('user', JSON.stringify(response.data.user));
+      
+      // Configurar axios para usar el token en futuras peticiones
+      api.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
+      
+      // Redirigir al dashboard
       navigate('/dashboard');
     } catch (err) {
       let errorMessage = 'Error en el servidor';
@@ -36,15 +49,35 @@ function Login() {
         errorMessage += '\n2. Que la URL sea correcta';
         errorMessage += '\n3. Que no haya problemas de red';
       } else if (err.response) {
-        errorMessage = err.response.data.message || 'Credenciales incorrectas';
+        // Manejar diferentes códigos de estado
+        switch(err.response.status) {
+          case 401:
+            errorMessage = 'Credenciales incorrectas';
+            break;
+          case 403:
+            errorMessage = 'Cuenta bloqueada temporalmente por muchos intentos fallidos';
+            break;
+          case 500:
+            errorMessage = 'Error interno del servidor';
+            break;
+          default:
+            errorMessage = err.response.data?.message || 'Error desconocido';
+        }
+      } else if (err.message) {
+        errorMessage = err.message;
       }
       
       setError(errorMessage);
       console.error('Detalles del error:', {
         code: err.code,
         message: err.message,
-        config: err.config
+        config: err.config,
+        response: err.response?.data
       });
+
+      // Limpiar credenciales en caso de error
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
     } finally {
       setLoading(false);
     }
@@ -69,6 +102,7 @@ function Login() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
+            autoComplete="username"
           />
           
           <TextField
@@ -79,12 +113,13 @@ function Login() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
+            autoComplete="current-password"
           />
           
           {error && (
-            <Typography color="error" sx={{ mt: 2, whiteSpace: 'pre-line' }}>
+            <Alert severity="error" sx={{ mt: 2, whiteSpace: 'pre-line' }}>
               {error}
-            </Typography>
+            </Alert>
           )}
           
           <Button

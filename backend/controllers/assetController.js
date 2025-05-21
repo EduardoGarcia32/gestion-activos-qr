@@ -263,3 +263,76 @@ exports.addMaintenanceRecord = async (req, res) => {
     });
   }
 };
+
+/**
+ * @desc    Actualizar activo
+ * @route   PUT /api/assets/:id
+ * @access  Privado (Admin)
+ */
+exports.updateAsset = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updateData = req.body;
+
+    const asset = await Asset.findByIdAndUpdate(
+      id,
+      {
+        ...updateData,
+        lastUpdatedBy: req.user.id,
+        updatedAt: new Date()
+      },
+      { new: true, runValidators: true }
+    ).select('-__v');
+
+    if (!asset) {
+      return res.status(404).json({
+        success: false,
+        message: 'Activo no encontrado'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Activo actualizado exitosamente',
+      data: asset
+    });
+  } catch (error) {
+    console.error('Error en updateAsset:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al actualizar el activo',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
+
+/**
+ * @desc    Eliminar activo
+ * @route   DELETE /api/assets/:id
+ * @access  Privado (Admin)
+ */
+exports.deleteAsset = async (req, res) => {
+  try {
+    const asset = await Asset.findByIdAndDelete(req.params.id);
+
+    if (!asset) {
+      return res.status(404).json({
+        success: false,
+        message: 'Activo no encontrado'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Activo eliminado exitosamente',
+      data: { id: req.params.id }
+    });
+  } catch (error) {
+    console.error('Error en deleteAsset:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al eliminar el activo',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};

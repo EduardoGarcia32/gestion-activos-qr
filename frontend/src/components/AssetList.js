@@ -2,16 +2,21 @@ import { useState } from 'react';
 import { 
   Table, TableBody, TableCell, TableContainer, 
   TableHead, TableRow, Paper, TextField, 
-  MenuItem, Box, Typography, Button, IconButton
+  MenuItem, Box, Typography, IconButton,
+  Tooltip, CircularProgress
 } from '@mui/material';
-import QrCodeIcon from '@mui/icons-material/QrCode';
-import QRModal from './QRModal'; // Crearemos este componente después
+import { Edit, Delete, QrCode } from '@mui/icons-material';
+import QRModal from './QRModal';
+import AssetEditModal from './AssetEditModal';
+import api from '../services/api';
 
-function AssetList({ assets }) {
+function AssetList({ assets, refreshAssets }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [filter, setFilter] = useState('all');
   const [selectedAsset, setSelectedAsset] = useState(null);
   const [qrModalOpen, setQrModalOpen] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [deleteLoadingId, setDeleteLoadingId] = useState(null);
 
   const filteredAssets = assets.filter(asset => {
     const matchesSearch = 
@@ -26,17 +31,23 @@ function AssetList({ assets }) {
     return matchesSearch && matchesFilter;
   });
 
-  const handleOpenQR = (asset) => {
-    setSelectedAsset(asset);
-    setQrModalOpen(true);
+  const handleDelete = async (assetId) => {
+    if (!window.confirm('¿Estás seguro de eliminar este activo?')) return;
+    
+    setDeleteLoadingId(assetId);
+    try {
+      await api.delete(`/assets/${assetId}`);
+      refreshAssets();
+    } catch (error) {
+      console.error('Error al eliminar:', error);
+      alert('No se pudo eliminar el activo');
+    } finally {
+      setDeleteLoadingId(null);
+    }
   };
 
   return (
-    <Box sx={{ mt: 4 }}>
-      <Typography variant="h5" gutterBottom>
-        Lista de Activos
-      </Typography>
-      
+    <Box sx={{ mt: 2 }}>
       <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
         <TextField
           label="Buscar activos"
@@ -57,6 +68,7 @@ function AssetList({ assets }) {
           <MenuItem value="Disponible">Disponible</MenuItem>
           <MenuItem value="Asignado">Asignado</MenuItem>
           <MenuItem value="Mantenimiento">Mantenimiento</MenuItem>
+          <MenuItem value="Retirado">Retirado</MenuItem>
         </TextField>
       </Box>
 
@@ -79,13 +91,33 @@ function AssetList({ assets }) {
                 <TableCell>{asset.model}</TableCell>
                 <TableCell>{asset.status}</TableCell>
                 <TableCell>
-                  <IconButton 
-                    onClick={() => handleOpenQR(asset)}
-                    color="primary"
-                    aria-label="Ver QR"
-                  >
-                    <QrCodeIcon />
-                  </IconButton>
+                  <Tooltip title="Ver QR">
+                    <IconButton onClick={() => {
+                      setSelectedAsset(asset);
+                      setQrModalOpen(true);
+                    }}>
+                      <QrCode />
+                    </IconButton>
+                  </Tooltip>
+                  
+                  <Tooltip title="Editar">
+                    <IconButton onClick={() => {
+                      setSelectedAsset(asset);
+                      setEditModalOpen(true);
+                    }}>
+                      <Edit />
+                    </IconButton>
+                  </Tooltip>
+                  
+                  <Tooltip title="Eliminar">
+                    <IconButton 
+                      onClick={() => handleDelete(asset._id)}
+                      disabled={deleteLoadingId === asset._id}
+                    >
+                      {deleteLoadingId === asset._id ? 
+                        <CircularProgress size={24} /> : <Delete />}
+                    </IconButton>
+                  </Tooltip>
                 </TableCell>
               </TableRow>
             ))}
@@ -94,14 +126,22 @@ function AssetList({ assets }) {
       </TableContainer>
 
       {filteredAssets.length === 0 && (
-        <Typography sx={{ mt: 2 }}>No se encontraron activos</Typography>
+        <Typography sx={{ mt: 2, textAlign: 'center' }}>
+          No se encontraron activos
+        </Typography>
       )}
 
-      {/* Modal para mostrar el QR */}
       <QRModal 
         open={qrModalOpen} 
         onClose={() => setQrModalOpen(false)} 
         asset={selectedAsset} 
+      />
+      
+      <AssetEditModal
+        open={editModalOpen}
+        onClose={() => setEditModalOpen(false)}
+        asset={selectedAsset}
+        onUpdate={refreshAssets}
       />
     </Box>
   );

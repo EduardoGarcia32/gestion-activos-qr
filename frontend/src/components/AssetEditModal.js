@@ -7,7 +7,9 @@ import {
   TextField,
   Button,
   MenuItem,
-  CircularProgress
+  CircularProgress,
+  Typography,
+  Alert
 } from '@mui/material';
 import api from '../services/api';
 
@@ -16,25 +18,46 @@ const AssetEditModal = ({ asset, open, onClose, onUpdate }) => {
     assetNumber: '',
     type: '',
     model: '',
-    status: 'Disponible'
+    status: 'Disponible',
+    specifications: {
+      brand: '',
+      serialNumber: '',
+      location: ''
+    }
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Cargar datos del activo cuando se abre el modal
   useEffect(() => {
     if (asset) {
       setFormData({
         assetNumber: asset.assetNumber,
         type: asset.type,
         model: asset.model,
-        status: asset.status
+        status: asset.status,
+        specifications: {
+          brand: asset.specifications?.brand || '',
+          serialNumber: asset.specifications?.serialNumber || '',
+          location: asset.specifications?.location || ''
+        }
       });
     }
   }, [asset]);
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSpecChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      specifications: {
+        ...prev.specifications,
+        [name]: value
+      }
+    }));
   };
 
   const handleSubmit = async (e) => {
@@ -43,9 +66,9 @@ const AssetEditModal = ({ asset, open, onClose, onUpdate }) => {
     setError('');
 
     try {
-      const response = await api.put(`/assets/${asset._id}`, formData);
-      onUpdate(response.data.data); // Actualizar lista
-      onClose(); // Cerrar modal
+      await api.put(`/assets/${asset._id}`, formData);
+      onUpdate();
+      onClose();
     } catch (err) {
       setError(err.response?.data?.message || 'Error al actualizar el activo');
       console.error('Error al actualizar:', err);
@@ -55,14 +78,14 @@ const AssetEditModal = ({ asset, open, onClose, onUpdate }) => {
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle>Editar Activo {asset?.assetNumber}</DialogTitle>
       <form onSubmit={handleSubmit}>
         <DialogContent>
           {error && (
-            <Typography color="error" sx={{ mb: 2 }}>
+            <Alert severity="error" sx={{ mb: 2 }}>
               {error}
-            </Typography>
+            </Alert>
           )}
 
           <TextField
@@ -73,6 +96,7 @@ const AssetEditModal = ({ asset, open, onClose, onUpdate }) => {
             fullWidth
             margin="normal"
             required
+            disabled
           />
 
           <TextField
@@ -103,6 +127,7 @@ const AssetEditModal = ({ asset, open, onClose, onUpdate }) => {
             onChange={handleChange}
             fullWidth
             margin="normal"
+            required
           >
             {['Disponible', 'Asignado', 'Mantenimiento', 'Retirado'].map((option) => (
               <MenuItem key={option} value={option}>
@@ -110,12 +135,48 @@ const AssetEditModal = ({ asset, open, onClose, onUpdate }) => {
               </MenuItem>
             ))}
           </TextField>
+
+          <Typography variant="subtitle1" sx={{ mt: 3, mb: 1 }}>
+            Especificaciones
+          </Typography>
+          
+          <TextField
+            label="Marca"
+            name="brand"
+            value={formData.specifications.brand}
+            onChange={handleSpecChange}
+            fullWidth
+            margin="normal"
+          />
+          
+          <TextField
+            label="Número de Serie"
+            name="serialNumber"
+            value={formData.specifications.serialNumber}
+            onChange={handleSpecChange}
+            fullWidth
+            margin="normal"
+          />
+          
+          <TextField
+            label="Ubicación"
+            name="location"
+            value={formData.specifications.location}
+            onChange={handleSpecChange}
+            fullWidth
+            margin="normal"
+          />
         </DialogContent>
         <DialogActions>
           <Button onClick={onClose} disabled={loading}>
             Cancelar
           </Button>
-          <Button type="submit" variant="contained" disabled={loading}>
+          <Button 
+            type="submit" 
+            variant="contained" 
+            disabled={loading}
+            color="primary"
+          >
             {loading ? <CircularProgress size={24} /> : 'Guardar Cambios'}
           </Button>
         </DialogActions>

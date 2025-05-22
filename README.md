@@ -35,6 +35,5 @@ Un sistema completo para administrar activos tecnológicos con generación de c�
 1. **Clonar el repositorio**
 ```bash
 git clone [https://github.com/tu-usuario/gestion-activos-qr.git](https://github.com/tu-usuario/gestion-activos-qr.git)
-cd gestion-activos-qr```
-
-# 2. Instalar dependencias
+cd gestion-activos-qr
+```bash

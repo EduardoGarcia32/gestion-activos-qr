@@ -10,8 +10,7 @@ import {
     Box
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
-import { QRCodeSVG } from 'qrcode.react'; // Usar solo esta importación
-import { Edit } from "@mui/icons-material";
+import { QRCodeSVG } from 'qrcode.react';
 
 const AssetCardsView = ({ assets, onEdit }) => {
     return (
@@ -21,12 +20,12 @@ const AssetCardsView = ({ assets, onEdit }) => {
                     <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column'}}>
                         <CardMedia sx={{ p: 2, display: 'flex', justifyContent: 'center'}}>
                             <QRCodeSVG
-                            value={JSON.stringify({
-                                ide: asset._id,
-                                number: asset.assetNumber
-                            })}
-                            size={128}
-                            level="H"
+                              value={JSON.stringify({
+                                  id: asset._id,
+                                  number: asset.assetNumber
+                              })}
+                              size={128}
+                              level="H"
                             />
                         </CardMedia>
                         <CardContent sx={{ flexGrow: 1 }}>
@@ -36,21 +35,32 @@ const AssetCardsView = ({ assets, onEdit }) => {
                             <Typography variant="body2" color="text.secondary">
                                 {asset.type} - {asset.model}
                             </Typography>
-                            <Box sx={{ mt: 1, display: 'flex', justifyContent: 'space-between'}}>
+                            <Typography variant="body2" sx={{ mt: 1 }}>
+                                <strong>Asignado a:</strong> {asset.assignedTo || 'No asignado'}
+                            </Typography>
+                            <Box sx={{ mt: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <Chip
-                                label={asset.status}
-                                color={
-                                    asset.status === 'Disponible' ? 'success':
-                                    asset.status === 'Mantenimiento' ? 'warning' : 'info'
-                                }
+                                  label={
+                                    asset.status === 'Disponible' ? 'Disponible' :
+                                    asset.status === 'Asignado' ? 'Asignado' :
+                                    asset.status === 'Mantenimiento' ? 'En Mantenimiento' : 'Retirado'
+                                  }
+                                  color={
+                                      asset.status === 'Disponible' ? 'success' :
+                                      asset.status === 'Mantenimiento' ? 'warning' : 'info'
+                                  }
                                 />
-                                <IconButton onClick={() => onEdit(asset)} size="small">
+                                <IconButton 
+                                  onClick={() => onEdit(asset)} 
+                                  size="small"
+                                  color="primary"
+                                >
                                     <EditIcon />
                                 </IconButton>
                             </Box>
                         </CardContent>
                     </Card>
-                    </Grid>
+                </Grid>
             ))}
         </Grid>
     );

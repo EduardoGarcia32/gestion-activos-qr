@@ -505,3 +505,71 @@ exports.importAssets = async (req, res) => {
     });
   }
 };
+
+/**
+ * @desc    Actualizar activo
+ * @route   PUT /api/assets/:id
+ * @access  Privado (Admin)
+ */
+exports.updateAsset = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updateData = req.body;
+
+    // Verificar si el activo existe
+    const existingAsset = await Asset.findById(id);
+    if (!existingAsset) {
+      return res.status(404).json({
+        success: false,
+        message: 'Activo no encontrado'
+      });
+    }
+
+    // Actualizar solo los campos permitidos
+    const allowedFields = [
+      'type', 'model', 'status', 'assignedTo', 
+      'specifications', 'maintenance', 'location'
+    ];
+    const filteredUpdate = {};
+    
+    Object.keys(updateData).forEach(key => {
+      if (allowedFields.includes(key)) {
+        filteredUpdate[key] = updateData[key];
+      }
+    });
+
+    // Actualizar el activo
+    const asset = await Asset.findByIdAndUpdate(
+      id,
+      {
+        ...filteredUpdate,
+        lastUpdatedBy: req.user.id,
+        updatedAt: new Date()
+      },
+      { new: true, runValidators: true }
+    ).select('-__v');
+
+    res.json({
+      success: true,
+      message: 'Activo actualizado exitosamente',
+      data: asset
+    });
+  } catch (error) {
+    console.error('Error en updateAsset:', error);
+    
+    // Manejo especial para errores de validación
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({
+        success: false,
+        message: 'Error de validación',
+        errors: Object.values(error.errors).map(err => err.message)
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: 'Error al actualizar el activo',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};

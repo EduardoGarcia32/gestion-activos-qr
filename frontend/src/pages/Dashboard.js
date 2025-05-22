@@ -5,13 +5,14 @@ import {
 } from '@mui/material';
 import { LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { es } from 'date-fns/locale'; // Opcional para español
+import { es } from 'date-fns/locale';
 import AssetList from '../components/AssetList';
 import AssetCardsView from '../components/AssetCardsView';
 import AssetForm from '../components/AssetForm';
 import AssetFilters from '../components/AssetFilters';
 import AssetSkeleton from '../components/AssetSkeleton';
 import DataTransfer from '../components/DataTransfer';
+import AssetEditModal from '../components/AssetEditModal';
 import api from '../services/api';
 
 const Dashboard = () => {
@@ -19,10 +20,11 @@ const Dashboard = () => {
   const [filteredAssets, setFilteredAssets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [viewMode, setViewMode] = useState('table'); // 'table' o 'cards'
+  const [viewMode, setViewMode] = useState('table');
   const [filterParams, setFilterParams] = useState({});
+  const [selectedAsset, setSelectedAsset] = useState(null);
+  const [editModalOpen, setEditModalOpen] = useState(false);
 
-  // Cargar/actualizar activos con filtros
   const refreshAssets = async () => {
     try {
       setLoading(true);
@@ -39,16 +41,12 @@ const Dashboard = () => {
     }
   };
 
-  // Efecto para cargar datos iniciales
   useEffect(() => {
     refreshAssets();
   }, [filterParams]);
 
   return (
-    <LocalizationProvider 
-      dateAdapter={AdapterDateFns}
-      adapterLocale={es} // Opcional: configura el idioma
-    >
+    <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={es}>
       <Container maxWidth="lg" sx={{ py: 4 }}>
         <Typography variant="h4" component="h1" gutterBottom>
           Gestión de Activos
@@ -91,9 +89,19 @@ const Dashboard = () => {
         ) : (
           <AssetCardsView 
             assets={filteredAssets}
-            onEdit={(asset) => console.log('Editar:', asset)}
+            onEdit={(asset) => {
+              setSelectedAsset(asset);
+              setEditModalOpen(true);
+            }}
           />
         )}
+
+        <AssetEditModal
+          open={editModalOpen}
+          onClose={() => setEditModalOpen(false)}
+          asset={selectedAsset}
+          onUpdate={refreshAssets}
+        />
       </Container>
     </LocalizationProvider>
   );

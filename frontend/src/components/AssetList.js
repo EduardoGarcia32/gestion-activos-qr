@@ -106,8 +106,13 @@ function AssetList({ assets, refreshAssets }) {
                 <TableCell>{asset.assetNumber}</TableCell>
                 <TableCell>{asset.type}</TableCell>
                 <TableCell>{asset.model}</TableCell>
-                <TableCell>{asset.status}</TableCell>
                 <TableCell>{asset.assignedTo || 'No asignado'}</TableCell>
+                  <TableCell>
+                      {asset.status === 'Disponible' && 'Disponible'}
+                      {asset.status === 'Asignado' && 'Asignado'}
+                      {asset.status === 'Mantenimiento' && 'En Mantenimiento'}
+                      {asset.status === 'Retirado' && 'Retirado'}
+                  </TableCell>
                 <TableCell>
                   <Tooltip title="Ver QR">
                     <IconButton onClick={() => {

@@ -36,4 +36,74 @@ Un sistema completo para administrar activos tecnológicos con generación de c�
 ```bash
 git clone [https://github.com/tu-usuario/gestion-activos-qr.git](https://github.com/tu-usuario/gestion-activos-qr.git)
 cd gestion-activos-qr
+```
+2. **Instalar dependencias***
 ```bash
+# Backend
+cd backend
+npm install
+
+# Frontend
+cd ../frontend
+npm install
+```
+3. **Configurar variables de entorno Crear un archivo ```bash .env``` en ```bash/backend```:**
+
+MONGODB_URI=tu_cadena_de_conexion_mongodb
+JWT_SECRET=tu_clave_secreta_jwt
+API_BASE_URL=http://localhost:800
+
+5. **Iniciar la aplicación**
+```bash
+# Backend (puerto 5000)
+cd backend
+npm run dev
+
+# Frontend (puerto 3000)
+cd ../frontend
+npm start
+```
+## 📂 Estructura del Proyecto
+```bash
+gestion-activos-qr/
+├── backend/
+│   ├── controllers/    # Lógica de los endpoints
+│   ├── models/         # Esquemas de MongoDB
+│   ├── routes/         # Rutas de la API
+│   └── server.js       # Configuración del servidor
+│
+├── frontend/
+│   ├── public/         # Assets estáticos
+│   ├── src/
+│   │   ├── components/ # Componentes reutilizables
+│   │   ├── pages/      # Vistas principales
+│   │   └── App.js      # Configuración de rutas
+│   └── ...
+│
+└── README.md           # Este archivo
+```
+
+## 🔐 Credenciales de Prueba
+
+*(Opcional: Si tienes usuarios demo)*
+
++ **Admin:** admin@example.com / Password123
++ **Usuario:** user@example.com / Password123
+
+## 🌍 Despliegue
+
+**Opción 1: Render (Recomendado)**
+
+**Opción 2: Vercel (Frontend) + Railway (Backend)**
++ Frontend: ```bash vercel --prod```
++ Backend: Importar repositorio en Railway
+
+## 📝 Licencia
+MIT License © 2025 Luis Eduardo García Soto
+
+## 🎯 Roadmap Futuro
++ [ ] Aplicación móvil para escanear QR
++ [ ] Dashboard de reportes
++ [ ] Integración con Active Directory
+
+

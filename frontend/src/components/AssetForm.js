@@ -16,10 +16,12 @@ function AssetForm({ onAddAsset }) {
     type: '',
     model: '',
     status: 'Disponible',
+    assignedTo: '', // Nuevo campo
     specifications: {
       brand: '',
       serialNumber: '',
-      location: ''
+      location: '',
+      description: '' // Nuevo campo
     }
   });
   const [loading, setLoading] = useState(false);
@@ -54,10 +56,12 @@ function AssetForm({ onAddAsset }) {
         type: '',
         model: '',
         status: 'Disponible',
+        assignedTo: '', // Reset del nuevo campo
         specifications: {
           brand: '',
           serialNumber: '',
-          location: ''
+          location: '',
+          description: '' // Reset del nuevo campo
         }
       });
     } catch (err) {
@@ -89,6 +93,7 @@ function AssetForm({ onAddAsset }) {
         fullWidth
         margin="normal"
       />
+      
       <TextField
         label="Tipo"
         name="type"
@@ -98,6 +103,7 @@ function AssetForm({ onAddAsset }) {
         fullWidth
         margin="normal"
       />
+      
       <TextField
         label="Modelo"
         name="model"
@@ -107,6 +113,17 @@ function AssetForm({ onAddAsset }) {
         fullWidth
         margin="normal"
       />
+
+      {/* Nuevo campo - Asignado a */}
+      <TextField
+        label="Asignado a"
+        name="assignedTo"
+        value={formData.assignedTo}
+        onChange={handleChange}
+        fullWidth
+        margin="normal"
+      />
+
       <TextField
         select
         label="Estado"
@@ -152,6 +169,18 @@ function AssetForm({ onAddAsset }) {
         onChange={handleSpecChange}
         fullWidth
         margin="normal"
+      />
+
+      {/* Nuevo campo - Descripción */}
+      <TextField
+        label="Descripción"
+        name="description"
+        value={formData.specifications.description}
+        onChange={handleSpecChange}
+        fullWidth
+        margin="normal"
+        multiline
+        rows={4}
       />
 
       <Button 

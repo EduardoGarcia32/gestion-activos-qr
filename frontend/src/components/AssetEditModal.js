@@ -1,48 +1,31 @@
-import { useState, useEffect } from 'react';
-import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  Button,
+import { useState } from 'react';
+import { 
+  TextField, 
+  Button, 
+  Box, 
   MenuItem,
-  CircularProgress,
   Typography,
-  Alert
+  Alert,
+  CircularProgress
 } from '@mui/material';
 import api from '../services/api';
 
-const AssetEditModal = ({ asset, open, onClose, onUpdate }) => {
+function AssetForm({ onAddAsset }) {
   const [formData, setFormData] = useState({
     assetNumber: '',
     type: '',
     model: '',
     status: 'Disponible',
+    assignedTo: '', // Nuevo campo
     specifications: {
       brand: '',
       serialNumber: '',
-      location: ''
+      location: '',
+      description: '' // Nuevo campo
     }
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-
-  useEffect(() => {
-    if (asset) {
-      setFormData({
-        assetNumber: asset.assetNumber,
-        type: asset.type,
-        model: asset.model,
-        status: asset.status,
-        specifications: {
-          brand: asset.specifications?.brand || '',
-          serialNumber: asset.specifications?.serialNumber || '',
-          location: asset.specifications?.location || ''
-        }
-      });
-    }
-  }, [asset]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -66,123 +49,150 @@ const AssetEditModal = ({ asset, open, onClose, onUpdate }) => {
     setError('');
 
     try {
-      await api.put(`/assets/${asset._id}`, formData);
-      onUpdate();
-      onClose();
+      const response = await api.post('/assets', formData);
+      onAddAsset(response.data.data);
+      setFormData({
+        assetNumber: '',
+        type: '',
+        model: '',
+        status: 'Disponible',
+        assignedTo: '', // Reset del nuevo campo
+        specifications: {
+          brand: '',
+          serialNumber: '',
+          location: '',
+          description: '' // Reset del nuevo campo
+        }
+      });
     } catch (err) {
-      setError(err.response?.data?.message || 'Error al actualizar el activo');
-      console.error('Error al actualizar:', err);
+      setError(err.response?.data?.message || 'Error al crear el activo');
+      console.error('Error al crear activo:', err);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-      <DialogTitle>Editar Activo {asset?.assetNumber}</DialogTitle>
-      <form onSubmit={handleSubmit}>
-        <DialogContent>
-          {error && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {error}
-            </Alert>
-          )}
+    <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
+      <Typography variant="h6" gutterBottom>
+        Agregar Nuevo Activo
+      </Typography>
+      
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      )}
 
-          <TextField
-            label="Número de Activo"
-            name="assetNumber"
-            value={formData.assetNumber}
-            onChange={handleChange}
-            fullWidth
-            margin="normal"
-            required
-            disabled
-          />
+      <TextField
+        label="Número de Activo"
+        name="assetNumber"
+        value={formData.assetNumber}
+        onChange={handleChange}
+        required
+        fullWidth
+        margin="normal"
+      />
+      
+      <TextField
+        label="Tipo"
+        name="type"
+        value={formData.type}
+        onChange={handleChange}
+        required
+        fullWidth
+        margin="normal"
+      />
+      
+      <TextField
+        label="Modelo"
+        name="model"
+        value={formData.model}
+        onChange={handleChange}
+        required
+        fullWidth
+        margin="normal"
+      />
 
-          <TextField
-            label="Tipo"
-            name="type"
-            value={formData.type}
-            onChange={handleChange}
-            fullWidth
-            margin="normal"
-            required
-          />
+      {/* Nuevo campo - Asignado a */}
+      <TextField
+        label="Asignado a"
+        name="assignedTo"
+        value={formData.assignedTo}
+        onChange={handleChange}
+        fullWidth
+        margin="normal"
+      />
 
-          <TextField
-            label="Modelo"
-            name="model"
-            value={formData.model}
-            onChange={handleChange}
-            fullWidth
-            margin="normal"
-            required
-          />
+      <TextField
+        select
+        label="Estado"
+        name="status"
+        value={formData.status}
+        onChange={handleChange}
+        fullWidth
+        margin="normal"
+      >
+        {['Disponible', 'Asignado', 'Mantenimiento', 'Retirado'].map((option) => (
+          <MenuItem key={option} value={option}>
+            {option}
+          </MenuItem>
+        ))}
+      </TextField>
 
-          <TextField
-            select
-            label="Estado"
-            name="status"
-            value={formData.status}
-            onChange={handleChange}
-            fullWidth
-            margin="normal"
-            required
-          >
-            {['Disponible', 'Asignado', 'Mantenimiento', 'Retirado'].map((option) => (
-              <MenuItem key={option} value={option}>
-                {option}
-              </MenuItem>
-            ))}
-          </TextField>
+      <Typography variant="subtitle1" sx={{ mt: 2, mb: 1 }}>
+        Especificaciones
+      </Typography>
+      
+      <TextField
+        label="Marca"
+        name="brand"
+        value={formData.specifications.brand}
+        onChange={handleSpecChange}
+        fullWidth
+        margin="normal"
+      />
+      
+      <TextField
+        label="Número de Serie"
+        name="serialNumber"
+        value={formData.specifications.serialNumber}
+        onChange={handleSpecChange}
+        fullWidth
+        margin="normal"
+      />
+      
+      <TextField
+        label="Ubicación"
+        name="location"
+        value={formData.specifications.location}
+        onChange={handleSpecChange}
+        fullWidth
+        margin="normal"
+      />
 
-          <Typography variant="subtitle1" sx={{ mt: 3, mb: 1 }}>
-            Especificaciones
-          </Typography>
-          
-          <TextField
-            label="Marca"
-            name="brand"
-            value={formData.specifications.brand}
-            onChange={handleSpecChange}
-            fullWidth
-            margin="normal"
-          />
-          
-          <TextField
-            label="Número de Serie"
-            name="serialNumber"
-            value={formData.specifications.serialNumber}
-            onChange={handleSpecChange}
-            fullWidth
-            margin="normal"
-          />
-          
-          <TextField
-            label="Ubicación"
-            name="location"
-            value={formData.specifications.location}
-            onChange={handleSpecChange}
-            fullWidth
-            margin="normal"
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={onClose} disabled={loading}>
-            Cancelar
-          </Button>
-          <Button 
-            type="submit" 
-            variant="contained" 
-            disabled={loading}
-            color="primary"
-          >
-            {loading ? <CircularProgress size={24} /> : 'Guardar Cambios'}
-          </Button>
-        </DialogActions>
-      </form>
-    </Dialog>
+      {/* Nuevo campo - Descripción */}
+      <TextField
+        label="Descripción"
+        name="description"
+        value={formData.specifications.description}
+        onChange={handleSpecChange}
+        fullWidth
+        margin="normal"
+        multiline
+        rows={4}
+      />
+
+      <Button 
+        type="submit" 
+        variant="contained" 
+        disabled={loading}
+        sx={{ mt: 2 }}
+      >
+        {loading ? <CircularProgress size={24} /> : 'Agregar Activo'}
+      </Button>
+    </Box>
   );
-};
+}
 
-export default AssetEditModal;
+export default AssetForm;

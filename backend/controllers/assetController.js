@@ -336,3 +336,172 @@ exports.deleteAsset = async (req, res) => {
     });
   }
 };
+
+/**
+ * @desc    Filtrar activos con parámetros avanzados
+ * @route   GET /api/assets/filter
+ * @access  Privado
+ */
+exports.filterAssets = async (req, res) => {
+  try {
+    const { 
+      type, 
+      status, 
+      search,
+      dateFrom,
+      dateTo,
+      assignedTo
+    } = req.query;
+
+    // Construir el filtro dinámico
+    const filter = {};
+    
+    // Filtros básicos
+    if (type) filter.type = type;
+    if (status) filter.status = status;
+    if (assignedTo) filter.assignedTo = assignedTo;
+
+    // Búsqueda textual (en número, modelo o marca)
+    if (search) {
+      filter.$or = [
+        { assetNumber: { $regex: search, $options: 'i' } },
+        { model: { $regex: search, $options: 'i' } },
+        { 'specifications.brand': { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    // Filtro por rango de fechas (creación)
+    if (dateFrom || dateTo) {
+      filter.createdAt = {};
+      if (dateFrom) filter.createdAt.$gte = new Date(dateFrom);
+      if (dateTo) filter.createdAt.$lte = new Date(dateTo);
+    }
+
+    // Paginación
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const [assets, total] = await Promise.all([
+      Asset.find(filter)
+        .skip(skip)
+        .limit(limit)
+        .select('-__v')
+        .sort({ createdAt: -1 }),
+      Asset.countDocuments(filter)
+    ]);
+
+    res.json({
+      success: true,
+      count: assets.length,
+      total,
+      pages: Math.ceil(total / limit),
+      currentPage: page,
+      data: assets,
+      filters: req.query // Opcional: devolver los filtros aplicados
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error al filtrar activos',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
+
+const XLSX = require('xlsx');
+
+/**
+ * @desc    Importar activos desde Excel
+ * @route   POST /api/assets/import
+ * @access  Privado (Admin/Manager)
+ */
+exports.importAssets = async (req, res) => {
+  try {
+    const { assetsData } = req.body;
+
+    if (!assetsData || !Array.isArray(assetsData)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Datos de importación inválidos',
+        example: [{
+          assetNumber: "IT-001",
+          type: "Laptop",
+          model: "Dell XPS 15",
+          status: "Disponible",
+          assignedTo: "",
+          specifications: {
+            brand: "Dell",
+            serialNumber: "ABC123",
+            location: "Oficina Central"
+          }
+        }]
+      });
+    }
+
+    // Validar y transformar datos
+    const validatedAssets = [];
+    const errors = [];
+
+    for (const [index, asset] of assetsData.entries()) {
+      try {
+        // Validación básica
+        if (!asset.assetNumber || !asset.type || !asset.model) {
+          throw new Error(`Faltan campos requeridos (fila ${index + 1})`);
+        }
+
+        // Generar QR
+        const qrData = {
+          assetId: asset.assetNumber.toUpperCase(),
+          apiEndpoint: `${process.env.API_BASE_URL}/api/assets/${asset.assetNumber}`
+        };
+        const qrCode = await QRCode.toDataURL(JSON.stringify(qrData));
+
+        validatedAssets.push({
+          ...asset,
+          assetNumber: asset.assetNumber.toUpperCase(),
+          qrCode,
+          specifications: {
+            ...asset.specifications,
+            addedBy: req.user.id
+          },
+          lastUpdatedBy: req.user.id
+        });
+      } catch (error) {
+        errors.push({
+          row: index + 1,
+          error: error.message,
+          assetNumber: asset.assetNumber || 'N/A'
+        });
+      }
+    }
+
+    // Si hay errores en todos los registros
+    if (validatedAssets.length === 0 && errors.length > 0) {
+      return res.status(422).json({
+        success: false,
+        message: 'Todos los registros tienen errores',
+        errors
+      });
+    }
+
+    // Insertar en lote
+    const result = await Asset.insertMany(validatedAssets, { ordered: false });
+
+    res.status(201).json({
+      success: true,
+      importedCount: result.length,
+      errorCount: errors.length,
+      errors: errors.length > 0 ? errors : undefined,
+      message: `Importación completada con ${errors.length} errores`
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error en la importación',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};

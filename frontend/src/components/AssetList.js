@@ -6,11 +6,13 @@ import {
   Tooltip, CircularProgress
 } from '@mui/material';
 import { Edit, Delete, QrCode } from '@mui/icons-material';
+import { useSnackbar } from 'notistack'; // Importa el hook de notistack
 import QRModal from './QRModal';
 import AssetEditModal from './AssetEditModal';
 import api from '../services/api';
 
 function AssetList({ assets, refreshAssets }) {
+  const { enqueueSnackbar } = useSnackbar(); // Inicializa notistack
   const [searchTerm, setSearchTerm] = useState('');
   const [filter, setFilter] = useState('all');
   const [selectedAsset, setSelectedAsset] = useState(null);
@@ -37,17 +39,32 @@ function AssetList({ assets, refreshAssets }) {
     setDeleteLoadingId(assetId);
     try {
       await api.delete(`/assets/${assetId}`);
+      enqueueSnackbar('Activo eliminado correctamente', { 
+        variant: 'success',
+        autoHideDuration: 3000,
+        anchorOrigin: {
+          vertical: 'top',
+          horizontal: 'right'
+        }
+      });
       refreshAssets();
     } catch (error) {
       console.error('Error al eliminar:', error);
-      alert('No se pudo eliminar el activo');
+      enqueueSnackbar('Error al eliminar el activo', { 
+        variant: 'error',
+        autoHideDuration: 4000
+      });
     } finally {
       setDeleteLoadingId(null);
     }
   };
 
   return (
-    <Box sx={{ mt: 2 }}>
+    <Box sx={{ mt: 4 }}>
+      <Typography variant="h5" gutterBottom>
+        Lista de Activos
+      </Typography>
+      
       <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
         <TextField
           label="Buscar activos"
@@ -68,7 +85,6 @@ function AssetList({ assets, refreshAssets }) {
           <MenuItem value="Disponible">Disponible</MenuItem>
           <MenuItem value="Asignado">Asignado</MenuItem>
           <MenuItem value="Mantenimiento">Mantenimiento</MenuItem>
-          <MenuItem value="Retirado">Retirado</MenuItem>
         </TextField>
       </Box>
 
@@ -79,6 +95,7 @@ function AssetList({ assets, refreshAssets }) {
               <TableCell>Número</TableCell>
               <TableCell>Tipo</TableCell>
               <TableCell>Modelo</TableCell>
+              <TableCell>Asignado a:</TableCell>
               <TableCell>Estado</TableCell>
               <TableCell>Acciones</TableCell>
             </TableRow>
@@ -90,6 +107,7 @@ function AssetList({ assets, refreshAssets }) {
                 <TableCell>{asset.type}</TableCell>
                 <TableCell>{asset.model}</TableCell>
                 <TableCell>{asset.status}</TableCell>
+                <TableCell>{asset.assignedTo || 'No asignado'}</TableCell>
                 <TableCell>
                   <Tooltip title="Ver QR">
                     <IconButton onClick={() => {
@@ -126,9 +144,7 @@ function AssetList({ assets, refreshAssets }) {
       </TableContainer>
 
       {filteredAssets.length === 0 && (
-        <Typography sx={{ mt: 2, textAlign: 'center' }}>
-          No se encontraron activos
-        </Typography>
+        <Typography sx={{ mt: 2 }}>No se encontraron activos</Typography>
       )}
 
       <QRModal 
@@ -141,7 +157,10 @@ function AssetList({ assets, refreshAssets }) {
         open={editModalOpen}
         onClose={() => setEditModalOpen(false)}
         asset={selectedAsset}
-        onUpdate={refreshAssets}
+        onUpdate={() => {
+          refreshAssets();
+          enqueueSnackbar('Activo actualizado correctamente', { variant: 'success' });
+        }}
       />
     </Box>
   );

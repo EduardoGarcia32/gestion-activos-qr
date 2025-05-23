@@ -1,18 +1,34 @@
 import { useState } from 'react';
 import { 
-  Table, TableBody, TableCell, TableContainer, 
-  TableHead, TableRow, Paper, TextField, 
-  MenuItem, Box, Typography, IconButton,
-  Tooltip, CircularProgress
+  Box, 
+  TextField, 
+  MenuItem, 
+  Typography, 
+  Chip,
+  IconButton,
+  Tooltip,
+  CircularProgress
 } from '@mui/material';
+import { DataGrid } from '@mui/x-data-grid';
 import { Edit, Delete, QrCode } from '@mui/icons-material';
-import { useSnackbar } from 'notistack'; // Importa el hook de notistack
+import { useSnackbar } from 'notistack';
 import QRModal from './QRModal';
 import AssetEditModal from './AssetEditModal';
 import api from '../services/api';
 
+// Función helper para estados
+const getStatusConfig = (status) => {
+  const config = {
+    Disponible: { label: 'Disponible', color: 'success' },
+    Asignado: { label: 'Asignado', color: 'info' },
+    Mantenimiento: { label: 'En Mantenimiento', color: 'warning' },
+    Retirado: { label: 'Retirado', color: 'error' }
+  };
+  return config[status] || { label: status, color: 'default' };
+};
+
 function AssetList({ assets, refreshAssets }) {
-  const { enqueueSnackbar } = useSnackbar(); // Inicializa notistack
+  const { enqueueSnackbar } = useSnackbar();
   const [searchTerm, setSearchTerm] = useState('');
   const [filter, setFilter] = useState('all');
   const [selectedAsset, setSelectedAsset] = useState(null);
@@ -59,8 +75,84 @@ function AssetList({ assets, refreshAssets }) {
     }
   };
 
+  const columns = [
+    { 
+      field: 'assetNumber', 
+      headerName: 'Número', 
+      width: 150,
+      renderCell: (params) => (
+        <Tooltip title={params.value}>
+          <span>{params.value}</span>
+        </Tooltip>
+      )
+    },
+    { 
+      field: 'type', 
+      headerName: 'Tipo', 
+      width: 120 
+    },
+    { 
+      field: 'model', 
+      headerName: 'Modelo', 
+      width: 150 
+    },
+    { 
+      field: 'assignedTo', 
+      headerName: 'Asignado a', 
+      width: 180,
+      renderCell: (params) => params.value || 'No asignado'
+    },
+    { 
+      field: 'status', 
+      headerName: 'Estado', 
+      width: 160,
+      renderCell: (params) => {
+        const { label, color } = getStatusConfig(params.value);
+        return <Chip label={label} color={color} />;
+      }
+    },
+    {
+      field: 'actions',
+      headerName: 'Acciones',
+      width: 180,
+      sortable: false,
+      filterable: false,
+      renderCell: (params) => (
+        <>
+          <Tooltip title="Ver QR">
+            <IconButton onClick={() => {
+              setSelectedAsset(params.row);
+              setQrModalOpen(true);
+            }}>
+              <QrCode />
+            </IconButton>
+          </Tooltip>
+          
+          <Tooltip title="Editar">
+            <IconButton onClick={() => {
+              setSelectedAsset(params.row);
+              setEditModalOpen(true);
+            }}>
+              <Edit />
+            </IconButton>
+          </Tooltip>
+          
+          <Tooltip title="Eliminar">
+            <IconButton 
+              onClick={() => handleDelete(params.row._id)}
+              disabled={deleteLoadingId === params.row._id}
+            >
+              {deleteLoadingId === params.row._id ? 
+                <CircularProgress size={24} /> : <Delete />}
+            </IconButton>
+          </Tooltip>
+        </>
+      )
+    }
+  ];
+
   return (
-    <Box sx={{ mt: 4 }}>
+    <Box sx={{ mt: 4, height: '100%' }}>
       <Typography variant="h5" gutterBottom>
         Lista de Activos
       </Typography>
@@ -85,72 +177,27 @@ function AssetList({ assets, refreshAssets }) {
           <MenuItem value="Disponible">Disponible</MenuItem>
           <MenuItem value="Asignado">Asignado</MenuItem>
           <MenuItem value="Mantenimiento">Mantenimiento</MenuItem>
+          <MenuItem value="Retirado">Retirado</MenuItem>
         </TextField>
       </Box>
 
-      <TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>Número</TableCell>
-              <TableCell>Tipo</TableCell>
-              <TableCell>Modelo</TableCell>
-              <TableCell>Asignado a:</TableCell>
-              <TableCell>Estado</TableCell>
-              <TableCell>Acciones</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {filteredAssets.map((asset) => (
-              <TableRow key={asset._id}>
-                <TableCell>{asset.assetNumber}</TableCell>
-                <TableCell>{asset.type}</TableCell>
-                <TableCell>{asset.model}</TableCell>
-                <TableCell>{asset.assignedTo || 'No asignado'}</TableCell>
-                  <TableCell>
-                      {asset.status === 'Disponible' && 'Disponible'}
-                      {asset.status === 'Asignado' && 'Asignado'}
-                      {asset.status === 'Mantenimiento' && 'En Mantenimiento'}
-                      {asset.status === 'Retirado' && 'Retirado'}
-                  </TableCell>
-                <TableCell>
-                  <Tooltip title="Ver QR">
-                    <IconButton onClick={() => {
-                      setSelectedAsset(asset);
-                      setQrModalOpen(true);
-                    }}>
-                      <QrCode />
-                    </IconButton>
-                  </Tooltip>
-                  
-                  <Tooltip title="Editar">
-                    <IconButton onClick={() => {
-                      setSelectedAsset(asset);
-                      setEditModalOpen(true);
-                    }}>
-                      <Edit />
-                    </IconButton>
-                  </Tooltip>
-                  
-                  <Tooltip title="Eliminar">
-                    <IconButton 
-                      onClick={() => handleDelete(asset._id)}
-                      disabled={deleteLoadingId === asset._id}
-                    >
-                      {deleteLoadingId === asset._id ? 
-                        <CircularProgress size={24} /> : <Delete />}
-                    </IconButton>
-                  </Tooltip>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
-
-      {filteredAssets.length === 0 && (
-        <Typography sx={{ mt: 2 }}>No se encontraron activos</Typography>
-      )}
+      <Box sx={{ height: 600, width: '100%' }}>
+        <DataGrid
+          rows={filteredAssets}
+          columns={columns}
+          pageSize={10}
+          rowsPerPageOptions={[10, 25, 50]}
+          disableSelectionOnClick
+          getRowId={(row) => row._id}
+          localeText={{
+            noRowsLabel: 'No se encontraron activos',
+            footerRowSelected: (count) =>
+              count !== 1
+                ? `${count.toLocaleString()} activos seleccionados`
+                : `${count.toLocaleString()} activo seleccionado`,
+          }}
+        />
+      </Box>
 
       <QRModal 
         open={qrModalOpen} 

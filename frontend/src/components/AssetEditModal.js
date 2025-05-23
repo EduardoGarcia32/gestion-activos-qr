@@ -1,4 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
+import { useFormik } from 'formik';
+import * as Yup from 'yup';
 import {
   Dialog,
   DialogTitle,
@@ -14,26 +16,53 @@ import {
 } from '@mui/material';
 import api from '../services/api';
 
+const validationSchema = Yup.object().shape({
+  assetNumber: Yup.string().required('Requerido'),
+  type: Yup.string().required('Requerido'),
+  model: Yup.string().required('Requerido'),
+  status: Yup.string().required('Requerido'),
+  assignedTo: Yup.string(),
+  specifications: Yup.object().shape({
+    brand: Yup.string(),
+    serialNumber: Yup.string(),
+    location: Yup.string(),
+    description: Yup.string()
+  })
+});
+
 function AssetEditModal({ open, onClose, asset, onUpdate }) {
-  const [formData, setFormData] = useState({
-    assetNumber: '',
-    type: '',
-    model: '',
-    status: 'Disponible',
-    assignedTo: '',
-    specifications: {
-      brand: '',
-      serialNumber: '',
-      location: '',
-      description: ''
+  const formik = useFormik({
+    initialValues: {
+      assetNumber: '',
+      type: '',
+      model: '',
+      status: 'Disponible',
+      assignedTo: '',
+      specifications: {
+        brand: '',
+        serialNumber: '',
+        location: '',
+        description: ''
+      }
+    },
+    validationSchema,
+    onSubmit: async (values, { setSubmitting, setStatus }) => {
+      try {
+        await api.put(`/assets/${asset._id}`, values);
+        onUpdate();
+        onClose();
+      } catch (err) {
+        setStatus(err.response?.data?.message || 'Error al actualizar el activo');
+        console.error('Error al actualizar activo:', err);
+      } finally {
+        setSubmitting(false);
+      }
     }
   });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
 
   useEffect(() => {
     if (asset) {
-      setFormData({
+      formik.setValues({
         assetNumber: asset.assetNumber,
         type: asset.type,
         model: asset.model,
@@ -49,55 +78,25 @@ function AssetEditModal({ open, onClose, asset, onUpdate }) {
     }
   }, [asset]);
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleSpecChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      specifications: {
-        ...prev.specifications,
-        [name]: value
-      }
-    }));
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
-
-    try {
-      await api.put(`/assets/${asset._id}`, formData);
-      onUpdate();
-      onClose();
-    } catch (err) {
-      setError(err.response?.data?.message || 'Error al actualizar el activo');
-      console.error('Error al actualizar activo:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle>Editar Activo</DialogTitle>
       <DialogContent>
-        <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
-          {error && (
+        <Box component="form" onSubmit={formik.handleSubmit} sx={{ mt: 2 }}>
+          {formik.status && (
             <Alert severity="error" sx={{ mb: 2 }}>
-              {error}
+              {formik.status}
             </Alert>
           )}
 
           <TextField
             label="Número de Activo"
             name="assetNumber"
-            value={formData.assetNumber}
-            onChange={handleChange}
+            value={formik.values.assetNumber}
+            onChange={formik.handleChange}
+            onBlur={formik.handleBlur}
+            error={formik.touched.assetNumber && Boolean(formik.errors.assetNumber)}
+            helperText={formik.touched.assetNumber && formik.errors.assetNumber}
             required
             fullWidth
             margin="normal"
@@ -106,8 +105,11 @@ function AssetEditModal({ open, onClose, asset, onUpdate }) {
           <TextField
             label="Tipo"
             name="type"
-            value={formData.type}
-            onChange={handleChange}
+            value={formik.values.type}
+            onChange={formik.handleChange}
+            onBlur={formik.handleBlur}
+            error={formik.touched.type && Boolean(formik.errors.type)}
+            helperText={formik.touched.type && formik.errors.type}
             required
             fullWidth
             margin="normal"
@@ -116,8 +118,11 @@ function AssetEditModal({ open, onClose, asset, onUpdate }) {
           <TextField
             label="Modelo"
             name="model"
-            value={formData.model}
-            onChange={handleChange}
+            value={formik.values.model}
+            onChange={formik.handleChange}
+            onBlur={formik.handleBlur}
+            error={formik.touched.model && Boolean(formik.errors.model)}
+            helperText={formik.touched.model && formik.errors.model}
             required
             fullWidth
             margin="normal"
@@ -126,8 +131,8 @@ function AssetEditModal({ open, onClose, asset, onUpdate }) {
           <TextField
             label="Asignado a"
             name="assignedTo"
-            value={formData.assignedTo}
-            onChange={handleChange}
+            value={formik.values.assignedTo}
+            onChange={formik.handleChange}
             fullWidth
             margin="normal"
             placeholder="Nombre del responsable"
@@ -137,8 +142,10 @@ function AssetEditModal({ open, onClose, asset, onUpdate }) {
             select
             label="Estado"
             name="status"
-            value={formData.status}
-            onChange={handleChange}
+            value={formik.values.status}
+            onChange={formik.handleChange}
+            error={formik.touched.status && Boolean(formik.errors.status)}
+            helperText={formik.touched.status && formik.errors.status}
             fullWidth
             margin="normal"
           >
@@ -154,36 +161,36 @@ function AssetEditModal({ open, onClose, asset, onUpdate }) {
           
           <TextField
             label="Marca"
-            name="brand"
-            value={formData.specifications.brand}
-            onChange={handleSpecChange}
+            name="specifications.brand"
+            value={formik.values.specifications.brand}
+            onChange={formik.handleChange}
             fullWidth
             margin="normal"
           />
           
           <TextField
             label="Número de Serie"
-            name="serialNumber"
-            value={formData.specifications.serialNumber}
-            onChange={handleSpecChange}
+            name="specifications.serialNumber"
+            value={formik.values.specifications.serialNumber}
+            onChange={formik.handleChange}
             fullWidth
             margin="normal"
           />
           
           <TextField
             label="Ubicación"
-            name="location"
-            value={formData.specifications.location}
-            onChange={handleSpecChange}
+            name="specifications.location"
+            value={formik.values.specifications.location}
+            onChange={formik.handleChange}
             fullWidth
             margin="normal"
           />
 
           <TextField
             label="Descripción"
-            name="description"
-            value={formData.specifications.description}
-            onChange={handleSpecChange}
+            name="specifications.description"
+            value={formik.values.specifications.description}
+            onChange={formik.handleChange}
             fullWidth
             margin="normal"
             multiline
@@ -194,11 +201,11 @@ function AssetEditModal({ open, onClose, asset, onUpdate }) {
       <DialogActions>
         <Button onClick={onClose}>Cancelar</Button>
         <Button 
-          onClick={handleSubmit}
+          onClick={formik.handleSubmit}
           variant="contained" 
-          disabled={loading}
+          disabled={formik.isSubmitting}
         >
-          {loading ? <CircularProgress size={24} /> : 'Guardar Cambios'}
+          {formik.isSubmitting ? <CircularProgress size={24} /> : 'Guardar Cambios'}
         </Button>
       </DialogActions>
     </Dialog>
